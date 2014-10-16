@@ -19,4 +19,4 @@ THINK_TIME_MEAN_MS = 1000
 THINK_TIME_STDEV_MS = 1000
 TOTAL_USERS = 1
 WORKLOAD_JAR = 
-WORKLOAD_CLASS = mdload.userdefined.session.TestMatlab
+WORKLOAD_CLASS = mdload.userdefined.session.Test
