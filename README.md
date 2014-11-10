@@ -13,6 +13,6 @@ on Selenium (http://docs.seleniumhq.org/) to automate a Firefox web browser that
 If this link does not work, go to https://github.com/imperial-modaclouds/modaclouds-mdload/tree/master/doc, 
 click on MDload_doc.pdf, and then on View Raw. 
 
-*Support*
+#####Support
 This tool has been developed and tested on equipment supported by the MODAClouds project, 
 by an ESPRC small grant, and by an Amazon AWS research grant. 
