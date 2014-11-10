@@ -12,3 +12,7 @@ on Selenium (http://docs.seleniumhq.org/) to automate a Firefox web browser that
 **Installation instructions** and **user guide** can be downloaded [here](https://github.com/imperial-modaclouds/modaclouds-mdload/blob/master/doc/MDload_doc.pdf?raw=true). 
 If this link does not work, go to https://github.com/imperial-modaclouds/modaclouds-mdload/tree/master/doc, 
 click on MDload_doc.pdf, and then on View Raw. 
+
+*Support*
+This tool has been developed and tested on equipment supported by the MODAClouds project, 
+by an ESPRC small grant, and by an Amazon AWS research grant. 
