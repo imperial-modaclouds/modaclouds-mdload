@@ -11,8 +11,8 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class UserAgent implements Runnable {
-	static Logger logAgent = Logger.getLogger("UserAgent");
-	static Logger logThink = Logger.getLogger("UserAgent.Think");
+	static Logger logAgent = Logger.getLogger("mdload.client.UserAgent");
+	static Logger logThink = Logger.getLogger("mdload.client.UserAgent.Think");
 	boolean warm;
 	private ConcurrentLinkedDeque<Request> requestQueue;
 	private long id;
@@ -20,6 +20,7 @@ public class UserAgent implements Runnable {
 	private Dispatcher dispatcher;
 	private Distribution distribution;
 	private WebDriver driver;
+	private long lastActionTime;
 
 	public UserAgent(WebDriver driver, Distribution distribution, Dispatcher dispatcher, long seed) {
 		this.driver = driver;
@@ -33,7 +34,7 @@ public class UserAgent implements Runnable {
 			dispatcher.increaseActiveUsers();
 		}
 		setWarm(false);
-
+		this.lastActionTime = System.currentTimeMillis(); 
 	}
 
 	@Override
@@ -54,6 +55,7 @@ public class UserAgent implements Runnable {
 			// boolean wasLastNullRequest = false;
 
 			Iterator<Request> iter = requestQueue.iterator();
+			boolean emptyQueue = requestQueue.size() == 0;
 			while (iter.hasNext()) {
 				Request currentRequest = iter.next();
 				currentRequest = requestQueue.poll();
@@ -99,6 +101,9 @@ public class UserAgent implements Runnable {
 						if (!(currentRequest instanceof EndSession) && !(currentRequest instanceof StartSession)) {
 				//			dispatcher.notifyEvent(id, thinkStamp, thinkTime, requestName, 1);
 						}
+						
+						//update time of last action before executing new action
+						lastActionTime = System.currentTimeMillis();
 						//					### The response form the Server is back
 						respTime = currentRequest.action(driver);
 
@@ -166,7 +171,7 @@ public class UserAgent implements Runnable {
 			}
 
 			// initially we are in the warm up phase (registration) increment the number of active users
-			if (!isWarm()) {
+			if (!isWarm() && !emptyQueue ) {
 				setWarm(true);
 				synchronized (dispatcher) {
 					dispatcher.increaseWarmUsers();
@@ -210,6 +215,10 @@ public class UserAgent implements Runnable {
 
 	public void setId(int id) {
 		this.id = id;
+	}
+	
+	public long getLastActionTime(){
+		return this.lastActionTime; 
 	}
 
 	public boolean isCooldown() {

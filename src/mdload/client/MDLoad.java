@@ -1,6 +1,5 @@
 package mdload.client;
 
-import mdload.client.ClientRandomStream;
 import mdload.client.util.DMPH;
 import mdload.client.util.Distribution;
 
@@ -10,31 +9,27 @@ import org.apache.log4j.Logger;
 import java.net.InetAddress;
 
 public class MDLoad {
+	
 	static Logger logMain = Logger.getLogger("mdload.client.Overseer");
 
 	public static Distribution fitThinkTime(double mean, double cv, double gamma) {
 		DMPH thinkDistrib = new DMPH(2);
 
-		if (gamma == 0) {
-			double scv = cv * cv;
-			thinkDistrib.setRate(0, 1, 1, -2 / mean);
-			thinkDistrib.setRate(0, 1, 2, -mean / (mean * mean - mean * mean * (scv + 1)));
-			thinkDistrib.setRate(0, 2, 1, 0.0);
-			thinkDistrib.setRate(0, 2, 2, mean / (mean * mean - mean * mean * (scv + 1)));
-			thinkDistrib.setRate(1, 1, 1, 2 / mean - (mean * (gamma - 1)) / (mean * mean - mean * mean * (scv + 1)));
-			thinkDistrib.setRate(1, 1, 2, (gamma * mean) / (mean * mean - mean * mean * (scv + 1)));
-			thinkDistrib.setRate(1, 2, 1, (mean * (gamma - 1)) / (mean * mean - mean * mean * (scv + 1)));
-			thinkDistrib.setRate(1, 2, 2, -(gamma * mean) / (mean * mean - mean * mean * (scv + 1)));
-		} else {
-			thinkDistrib.setRate(0, 1, 1, -3 - 0.0024399);
-			thinkDistrib.setRate(0, 1, 2, 0.0024399);
-			thinkDistrib.setRate(0, 2, 1, 0.00020246);
-			thinkDistrib.setRate(0, 2, 2, -0.021799 - 0.00020246);
-			thinkDistrib.setRate(1, 1, 1, 3.0);
-			thinkDistrib.setRate(1, 1, 2, 0.0);
-			thinkDistrib.setRate(1, 2, 1, 0.0);
-			thinkDistrib.setRate(1, 2, 2, 0.021799);
+		if (gamma < 0 || gamma >= 1 ) {
+			System.out.println("Only values of the autocorrelation function decay rate in [0,1) are supported");
+			System.out.println("Modifying value from " + gamma+ " to 0");
+			gamma = 0;
 		}
+		double scv = cv * cv;
+		thinkDistrib.setRate(0, 1, 1, -2 / mean);
+		thinkDistrib.setRate(0, 1, 2, 1 / (mean * scv ));
+		thinkDistrib.setRate(0, 2, 1, 0.0);
+		thinkDistrib.setRate(0, 2, 2, 1 / (mean * scv ));
+		thinkDistrib.setRate(1, 1, 1, 2 / mean - (1- gamma) / (mean * scv ));
+		thinkDistrib.setRate(1, 1, 2, gamma / (mean * scv ));
+		thinkDistrib.setRate(1, 2, 1, (1 - gamma ) / (mean * scv ));
+		thinkDistrib.setRate(1, 2, 2, gamma / (mean * scv ));
+	
 		return thinkDistrib;
 	}
 
@@ -62,11 +57,13 @@ public class MDLoad {
 		double cv = ClientDefs.THINK_TIME_STDEV_MS / ClientDefs.THINK_TIME_MEAN_MS;
 		double gamma = ClientDefs.THINK_TIME_ACF_GEOMDECAY_RATE;
 		Distribution thinkTime = fitThinkTime(mean, cv, gamma);
+		System.out.println("Think time - mean: "+mean + " cv: "+cv+" gamma: "+gamma); 
 
 		mean = ClientDefs.SESSION_IAT_MEAN_MS / 1000; // mean is in seconds
 		cv = ClientDefs.SESSION_IAT_STDEV_MS / ClientDefs.SESSION_IAT_MEAN_MS;
 		gamma = ClientDefs.SESSION_IAT_ACF_GEOMDECAY_RATE;
 		Distribution sessionIAT = fitThinkTime(mean, cv, gamma);
+		System.out.println("IATs - mean: "+mean + " cv: "+cv+" gamma: "+gamma); 
 
 		Overseer overseer = new Overseer(thinkTime, sessionIAT, runTime, isMaster);
 		overseer.execute();

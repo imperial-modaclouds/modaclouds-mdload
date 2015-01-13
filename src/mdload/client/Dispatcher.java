@@ -28,11 +28,11 @@ import java.io.File;
 import java.lang.reflect.Method;
 
 public class Dispatcher implements Runnable {
-	static Logger logMain = Logger.getLogger("client.Dispatcher");
-	static Logger logActive = Logger.getLogger("client.Dispatcher.Active");
-	static Logger logBoot = Logger.getLogger("client.Dispatcher.Boot");
-	static Logger logSpace = Logger.getLogger("client.Dispatcher.Space");
-	static Logger logGraph = Logger.getLogger("client.Dispatcher.Graph");
+	static Logger logMain = Logger.getLogger("mdload.client.Dispatcher");
+	static Logger logActive = Logger.getLogger("mdload.client.Dispatcher.Active");
+	static Logger logBoot = Logger.getLogger("mdload.client.Dispatcher.Boot");
+	//static Logger logSpace = Logger.getLogger("client.Dispatcher.Space");
+	//static Logger logGraph = Logger.getLogger("client.Dispatcher.Graph");
 	//this is the queue of UserAgents waiting for a new session.
 	public LinkedBlockingQueue<UserAgent> dispatchQueue;
 	public LinkedBlockingQueue<UserAgent> injectionQueue;
@@ -106,6 +106,7 @@ public class Dispatcher implements Runnable {
 		while (isWarmupPhase()) {
 			doWarmUp();
 			logMain.info("Still in warm up phase.");
+			checkAgentStatus();
 		}
 		outboxOverseer.send(new Signal(Signal.DISPATCHER_WARMUP_END));
 
@@ -127,7 +128,7 @@ public class Dispatcher implements Runnable {
 	 *
 	 * @return The newly instantiated user agent.
 	 */
-	private UserAgent newAgent(int id) {
+	private UserAgent newAgent(long id) {
 		WebDriver driver = new FirefoxDriver(ClientDefs.getBrowserProfile());
 		driver.manage().timeouts().setScriptTimeout(ClientDefs.PAGELOAD_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 		driver.manage().timeouts().implicitlyWait(ClientDefs.IMPLICIT_WAIT_MS, TimeUnit.MILLISECONDS);
@@ -162,7 +163,8 @@ public class Dispatcher implements Runnable {
 	public void doBoot() {
 
 		for (int i = 0; i < ClientDefs.TOTAL_USERS; i++) {
-			UserAgent agent = newAgent(i);
+			//UserAgent agent = newAgent(i);
+			UserAgent agent = newAgent(System.currentTimeMillis());
 			agents.add(agent);
 			setAgent(agent);
 		}
@@ -209,12 +211,22 @@ public class Dispatcher implements Runnable {
 				Class c = cl.loadClass(className);
 			}
 			@SuppressWarnings("unchecked")
-			Class<? extends Session> workloadClass = (Class<? extends Session>) cl.loadClass("mdload.userdefined.session.Test");
+			//Class<? extends Session> workloadClass = (Class<? extends Session>) cl.loadClass("mdload.userdefined.session.Test");
+			Class<? extends Session> workloadClass = (Class<? extends Session>) cl.loadClass(ClientDefs.WORKLOAD_CLASS);
 			Object obj = workloadClass.getDeclaredConstructor(long.class).newInstance(agent.getId());
-			Method method = workloadClass.getDeclaredMethod("getWarmup", new Class[] {});
+			
+			// 
+			Method method; 
+			if (!agent.isWarm()){
+				method = workloadClass.getDeclaredMethod("getWarmup", new Class[] {});
+			}else{
+				method = workloadClass.getDeclaredMethod("getNext", new Class[] {});
+			}
 
 			@SuppressWarnings("unchecked")
 			Collection<Request> session = (Collection<Request>) method.invoke(obj, new Object[]{});
+			//@SuppressWarnings("unchecked")
+			//Collection<Request> session2 = (Collection<Request>) method.invoke(agent, new Object[]{});
 
 			agent.setRequests(session, true);
 		} catch (Exception e) {
@@ -238,6 +250,25 @@ public class Dispatcher implements Runnable {
 		if (warmedUp == agents.size()) {
 			logMain.info("**************************** WarmUp Complete **************************** ");
 			setWarmupPhase(false);
+		}
+	}
+	
+	/**
+	 * Checks the last time each agent generated an action. 
+	 * If this time surpasses the predefined limit (ClientDefs.maxTimeWithoutActivity) 
+	 * the agent is reset.  
+	 */
+	public void checkAgentStatus(){
+		for (int i = 0; i < agents.size(); i++) {
+			long time = System.currentTimeMillis()- agents.get(i).getLastActionTime();
+			System.out.println("ID: "+agents.get(i).getId()+" Last action time difference: "+ time);
+			if ( time > 5*60*1000) {
+				System.out.println("Cooling down agent "+i);
+				agents.get(i).doCooldown();
+				UserAgent agent = newAgent(i);
+				agents.set(i, agent); 
+				setAgent(agent);
+			}
 		}
 	}
 
@@ -282,6 +313,8 @@ public class Dispatcher implements Runnable {
 
 				@SuppressWarnings("unchecked")
 				Collection<Request> session = (Collection<Request>) method.invoke(obj, new Object[]{});
+				//@SuppressWarnings("unchecked")
+				//Collection<Request> session2 = (Collection<Request>) method.invoke(agent, new Object[]{});
 
 				agent.setRequests(session, true);
 			} catch (Exception e) {

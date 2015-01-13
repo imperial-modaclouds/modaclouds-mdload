@@ -1,6 +1,7 @@
 package mdload.client;
 
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
@@ -46,7 +47,9 @@ public class ClientDefs
 		try
 		{
 			logger.info( "loading from file: " + file );
+			String workingDir =System.getProperty("user.dir");
 			InputStream stream = ClientDefs.class.getResourceAsStream( file );
+			//FileInputStream stream = new FileInputStream(workingDir+file); 
 			if( stream == null ) throw new Exception( "config file not found" );
 
 			properties.load( stream );
@@ -117,6 +120,12 @@ public class ClientDefs
 		profile.setPreference("security.warn_submit_insecure", false);
 		profile.setPreference("security.warn_submit_insecure.show_once", false);
 		//	profile.setPreference("browser.sessionstore.enabled*", false);
+		
+		// temporary preferences for manual proxy setting in firefox
+		//profile.setPreference("network.proxy.socks", "127.0.0.1");
+		//profile.setPreference("network.proxy.type", 1);
+		//profile.setPreference("network.proxy.socks_port", 1080);
+		
 		return profile;
 	}
 }

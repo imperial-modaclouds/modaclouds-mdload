@@ -13,8 +13,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class Overseer {
-static Logger logMain = Logger.getLogger("ofbench.client.Overseer");
-static Logger logState = Logger.getLogger("ofbench.client.Overseer.State");
+static Logger logMain = Logger.getLogger("mdload.client.Overseer");
+static Logger logState = Logger.getLogger("mdload.client.Overseer.State");
 private OutChannel outboxDispatcher;
 private InChannel inbox;
 private Thread dispatcherThread;
